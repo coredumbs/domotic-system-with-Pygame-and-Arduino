@@ -308,7 +308,7 @@ class REDataAPI():
             if self.prices[i] < cheapest:
                 cheapest,hour = self.prices[i],i
         
-        return cheapest, hour
+        return  hour
         
 
 class Button:
@@ -335,8 +335,8 @@ class Button:
         
         if not flip == None:
             if flip == True:
-                self.text_surf = pygame.transform.flip(self.text_surf, flip_x = False, flip_y=True)
-                #self.text_rect = pygame.transform.flip(self.text_rect, flip_x = False, flip_y=True)
+                self.text_surf = pygame.transform.flip(self.text_surf, False, True)
+                # self.text_rect = pygame.transform.flip(self.text_rect, flip_x = False, flip_y=True)
 
     def draw(self, screen, function):
     # elevation logic 
@@ -398,26 +398,18 @@ class Items():
         # Home lights and appliances
         self.led        = 0
         self.tv         = 0
-        self.air        = [0,21] 
-                            # Recive:
-                            # [0]           [1]
-                            # 0 - Off       Temp
-                            # 1 - Cold
-                            # 2 - Hot
+        self.air        = [
+                            0,  # ON/OFF    0 = Off     1 = On
+                            1,  # MAN/AUTO  1 = Man     2 = Auto 
+                            1,  # COLD/HOT  1 = Cold    2 = Hot
+                            21  # Temperature
+                        ] 
         self.appliance  = 0
         self.blind      = 0 
                             # 0 Off
                             # 1 Up
                             # 2 Down 
 
-        self.air_onoff      = 0
-
-        self.air_mode_ma    = 0
-                            # 0 means MANUAL
-                            # 1 means AUTOMATIC
-        self.air_mode_ch    = 0
-                            # 0 means COLD
-                            # 1 means HOT
 
         # Home settings
         self.wake_hour      = "0000"
@@ -427,20 +419,20 @@ class Items():
         self.temperature    = "00"
         self.temperature_m  = "15"
         self.temperature_M  = "30"
-        self.laundry_time_m = "0000"
-        self.laundry_time_M = "2400"
-        self.laundry_time   = "0000"
+        self.laundry_time_m = "0"
+        self.laundry_time_M = "24"
+        self.laundry_time   = "00"
 
     def get_trama(self):
-        if self.air_onoff == 0:
+        if self.air[0] == 0:
             air = 0
-        if self.air_onoff == 1:
-            air = self.air_mode_ma + 1
+        if self.air[0] == 1:
+            air = self.air[1]
         t = (
             str(int(1)) + 
             str(int(self.led)) + 
             str(int(self.tv)) + 
-            str(int(air)) + str(int(self.air[1])) +
+            str(int(air)) + str(int(self.air[3])) +
             str(int(self.appliance)) + 
             str(int(self.blind))
         )
@@ -617,26 +609,22 @@ class LightsWindow():
         return tr
 
     def check_light_status(self, items):
-        global last_mouse_state
         mx, my = pygame.mouse.get_pos()
+       
         if mx > 240 and mx < 260 and my > 225 and my < 245: 
-            mouse_state = pygame.mouse.get_pressed()
-            last_mouse_state += 1
-            if mouse_state[0] == True and last_mouse_state > 25:
-                if items.led == 1:
-                    items.led = 0
-                elif items.led == 0:
-                    items.led = 1
-                last_mouse_state = 0
-                tr = items.get_trama()
-                return tr
-            else:
-                tr = str(int(0))
-                return tr
-            
-        else:
-            tr = str(int(0))
-            return tr
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if items.led == 1:
+                        items.led = 0
+                    elif items.led == 0:
+                        items.led = 1
+
+                    tr = items.get_trama()
+                    return tr
+                
+       
+        tr = str(int(0))
+        return tr
     
     def print_indicator(self,screen, items):
         if items.led == 1:
@@ -677,23 +665,18 @@ class TVWindow():
         global last_mouse_state
         mx, my = pygame.mouse.get_pos()
         if mx > 35 and mx < 85 and my > 270 and my < 400: 
-            mouse_state = pygame.mouse.get_pressed()
-            last_mouse_state += 1
-            if mouse_state[0] == True and last_mouse_state > 25:
-                if items.tv == 1:
-                    items.tv = 0
-                elif items.tv == 0:
-                    items.tv = 1
-                last_mouse_state = 0
-                tr = items.get_trama()
-                return tr
-            else:
-                tr = str(int(0))
-                return tr
-            
-        else:
-            tr = str(int(0))
-            return tr
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if items.tv == 1:
+                        items.tv = 0
+                    elif items.tv == 0:
+                        items.tv = 1
+                    last_mouse_state = 0
+                    tr = items.get_trama()
+                    return tr
+       
+        tr = str(int(0))
+        return tr
 
     def print_tv_indicator(self, screen, items):
         if items.tv == True:
@@ -734,28 +717,26 @@ class AirWindow():
         screen.blit(self.air_plan_img, self.air_plan_rect)
         self.go_back_button.draw(screen, functions[0])
 
-        # Checking the air button
-        #tr = self.check_air_status(items)
 
         # Checking if we print ON or OFF button
         if items.air[0] == 0:   
             self.on_mode.draw(screen,functions[1])
-        elif not items.air[0] == 0:
-            self.off_mode.draw(screen,functions[1])
+        elif items.air[0] == 1:
+            self.off_mode.draw(screen,functions[2])
         
         # Checking if we print MAN or AUTO button
-        if items.air_mode_ma == 0:
-            self.automatic_mode.draw(screen,functions[2])
-        elif items.air_mode_ma == 1:
-            self.manual_mode.draw(screen,functions[2])
+        if items.air[1] == 1:
+            self.automatic_mode.draw(screen,functions[4])
+        elif items.air[1] == 2:
+            self.manual_mode.draw(screen,functions[3])
 
         # Printing up down temperature
-        self.air_up.draw(screen,functions[3])
-        self.air_down.draw(screen,functions[4])
+        self.air_up.draw(screen,functions[5])
+        self.air_down.draw(screen,functions[6])
         
         # Printing temperature text
         pygame.draw.rect(screen, GREY, (194,312,40,60), border_radius=0)
-        temp_text = pygame.font.Font(None,25).render(str(items.air[1]), True, WHITE)
+        temp_text = pygame.font.Font(None,25).render(str(items.air[3]), True, WHITE)
         temp_rect = temp_text.get_rect(left=207,top=332)
         screen.blit(temp_text,temp_rect)
 
@@ -796,20 +777,20 @@ class AirWindow():
         if items.air[0] == 0:
             air_text = pygame.font.Font(None, 20).render("Air Off", True, RED)
             air_rect = air_text.get_rect(left=130, top=380)
-        elif items.air[0] == 1:
+        elif items.air[2] == 1:
             air_text = pygame.font.Font(None, 20).render("Air On - COLD", True, GREEN)
             air_rect = air_text.get_rect(left=130, top=380)
-        elif items.air[0] == 2:    
+        elif items.air[2] == 2:    
             air_text = pygame.font.Font(None, 20).render("Air On - HOT", True, GREEN)
             air_rect = air_text.get_rect(left=130, top=380)
 
         screen.blit(air_text, air_rect)
 
     def do_air_simulation(self,screen, items):
-        if items.air[0] == 1:       # Cold air
+        if items.air[2] == 1 and not items.air[0] == 0 :       # Cold air
             pygame.draw.circle(screen, BLUE, center=(140,400), radius=8)
         
-        elif items.air[0] == 2:     # Heat air
+        elif items.air[2] == 2 and not items.air[0] == 0:      # Heat air
             pygame.draw.circle(screen, RED, center=(156,400), radius=8)
         
 
@@ -836,22 +817,18 @@ class ApplianceWindow():
         global last_mouse_state
         mx, my = pygame.mouse.get_pos()
         if mx > 165 and mx < 275 and my > 350 and my < 420: 
-            mouse_state = pygame.mouse.get_pressed()
-            last_mouse_state += 1
-            if mouse_state[0] == True and last_mouse_state > 25:
-                if items.appliance == 1:
-                    items.appliance = 0
-                elif items.appliance == 0:
-                    items.appliance = 1
-                last_mouse_state = 0
-                tr = items.get_trama()
-                return tr
-            else:
-                tr = str(int(0))
-                return tr
-        else:
-            tr = str(int(0))
-            return tr
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if items.appliance == 1:
+                        items.appliance = 0
+                    elif items.appliance == 0:
+                        items.appliance = 1
+                    last_mouse_state = 0
+                    tr = items.get_trama()
+                    return tr
+  
+        tr = str(int(0))
+        return tr
 
     def print_appliance_indicator(self,screen,items):
         if items.appliance == True:
@@ -1145,7 +1122,7 @@ class SettingsWindow():
         items.laundry_time_M= self.ltm_slider.draw()
         if len(items.laundry_time_M) < 2: items.laundry_time_M = str(int(0)) + items.laundry_time_M
 
-        items.laundry_time = re.get_cheapest_in_range(int(self,items.laundry_time_m),int(items.laundry_tiem_M))
+        items.laundry_time = re.get_cheapest_in_range(int(items.laundry_time_m),int(items.laundry_time_M))
         
         self.wh_slider.print_info("Select the hour when you usually get up",downside=True)
         self.nh_slider.print_info("Select the hour when you usually leave home")
